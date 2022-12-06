@@ -48,24 +48,24 @@ while True:
                                                         "source",
                                                         "text",
                                                         "withheld"],
-                                         poll_fields=["duration_minutes",
-                                                        "end_datetime",
-                                                        "id",
-                                                        "options",
-                                                        "voting_status"],
-                                         media_fields=["alt_text",
-                                                        "duration_ms",
-                                                        "height",
-                                                        "media_key",
-                                                        "non_public_metrics",
-                                                        "organic_metrics",
-                                                        "preview_image_url",
-                                                        "promoted_metrics",
-                                                        "public_metrics",
-                                                        "type",
-                                                        "url",
-                                                        "variants",
-                                                        "width"],
+                                         #poll_fields=["duration_minutes",
+                                                      #  "end_datetime",
+                                                       # "id",
+                                                       # "options",
+                                                       # "voting_status"],
+                                         # media_fields=["alt_text",
+                                         #                "duration_ms",
+                                         #                "height",
+                                         #                "media_key",
+                                         #                "non_public_metrics",
+                                         #                "organic_metrics",
+                                         #                "preview_image_url",
+                                         #                "promoted_metrics",
+                                         #                "public_metrics",
+                                         #                "type",
+                                         #                "url",
+                                         #                "variants",
+                                         #                "width"],
                                          user_fields=["created_at",
                                                     "description",
                                                     "entities",
@@ -88,8 +88,7 @@ while True:
                                                         "id",
                                                         "name",
                                                         "place_type"],
-                                         expansions=["attachments.media_keys",
-                                                    "attachments.poll_ids",
+                                         expansions=[
                                                     "author_id",
                                                     "edit_history_tweet_ids",
                                                     "entities.mentions.username",
@@ -109,14 +108,37 @@ while True:
 
     if tweets is not None:
         for i,tweet in enumerate(tweets.data):
-            lang = tweet.lang
-            date = tweet.created_at
-            data = tweet.data
-            tweet = json.dumps(tweet.data).encode('utf-8')
-            producer.send(topic, tweet)
+            userCreateDate = ''
+            userLocation = ''
+            userName = ''
+            displayName = ''
+            userVerified = ''
+            for i, user in enumerate(tweets.includes.get('users')):
+                if user.id == tweet.author_id:
+                    userCreateDate = user.created_at
+                    userLocation = user.location
+                    userName = user.username
+                    displayName = user.name
+                    userVerified = user.verified
+            tw ={}
+            tw['lang'] = tweet.lang
+            tw['date'] = tweet.created_at.strftime('%Y-%m-%d %H:%M:%S%z (%Z)')
+            tw['text'] = tweet.text
+            tw['source'] = tweet.source
+            tw['userCreateDate'] = userCreateDate.strftime('%Y-%m-%d %H:%M:%S%z (%Z)')
+            tw['userName'] = userName
+            tw['displayName'] = displayName
+            tw['userLocation'] = userLocation
+            tw['userVerified'] = userVerified
+            #print(tw)
+
+            tw = json.dumps(tw).encode('utf-8')
+
+
+            producer.send(topic, tw)
             actualTweet +=1
 
-            print(date, f'Le {actualTweet}ème tweet a été envoyé à Kafka!', 'langue', lang )
+            print(tweet.created_at, f'Le {actualTweet}ème tweet a été envoyé à Kafka!', 'langue', tweet.lang )
 
     timedate = datetime.datetime.now()
     last_offset_per_partition = consumer.end_offsets(partitions)
