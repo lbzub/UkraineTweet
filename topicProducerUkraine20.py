@@ -97,7 +97,7 @@ while True:
                                                     "referenced_tweets.id",
                                                     "referenced_tweets.id.author_id"
                                                     ],
-                                        max_results=10,
+                                        max_results=100,
                                         start_time=start_time,
                                         end_time=end_time
                                         )
@@ -124,12 +124,14 @@ while True:
             tw['lang'] = tweet.lang
             tw['date'] = tweet.created_at.strftime('%Y-%m-%d %H:%M:%S%z (%Z)')
             tw['text'] = tweet.text
+            tw['contextAnnotation'] = tweet.context_annotations
             tw['source'] = tweet.source
             tw['userCreateDate'] = userCreateDate.strftime('%Y-%m-%d %H:%M:%S%z (%Z)')
             tw['userName'] = userName
             tw['displayName'] = displayName
             tw['userLocation'] = userLocation
             tw['userVerified'] = userVerified
+
             #print(tw)
 
             tw = json.dumps(tw).encode('utf-8')

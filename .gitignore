@@ -1,3 +1,5 @@
 /env/
 .idea/
 *.iml
+/docker-elk-main.old/
+/ELK_docker/
