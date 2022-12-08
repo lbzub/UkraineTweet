@@ -1,20 +1,23 @@
 from kafka3 import KafkaProducer
 from kafka3 import KafkaConsumer
 from kafka3 import TopicPartition
+from cleanTweet import pre_process_tweet
 import tweepy
 import datetime
 import time
 import json
+import os
 
 # Choix du serveur kafka local ou distant
 #listener = 'localhost:19092'
 listener = 'emsst.ddns.net:9092'
 topic = "ukraine20"
+__location__ = os.path.realpath(
+    os.path.join(os.getcwd(), os.path.dirname(__file__)))
+
 #Définitions des paramètres tweepy et kafka
 client = tweepy.Client(bearer_token='AAAAAAAAAAAAAAAAAAAAAH03jQEAAAAAytapQlqUanV7mDeQ%2B386PKdQygM%3DdKev8v4TwXIuMfKaQ0AfAvxzxRlU9pziARLgR0CtVjoU2Z7Eu0')
 producer = KafkaProducer(bootstrap_servers=[listener])
-
-
 consumer = KafkaConsumer(
     topic,
     bootstrap_servers=[listener],
@@ -24,6 +27,11 @@ partitions=[TopicPartition(topic, 0)]
 query = 'ukraine'
 start_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=40)
 end_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=34)
+
+
+geoJson = open(os.path.join(__location__, 'ua.geojson'))
+villes= json.load(geoJson)
+
 
 #Récupération des tweets et envoie en json sur le topic Kafka
 while True:
@@ -106,6 +114,8 @@ while True:
     start_time = end_time
     end_time = start_time + datetime.timedelta(seconds=6)
 
+
+
     if tweets is not None:
         for i,tweet in enumerate(tweets.data):
             userCreateDate = ''
@@ -113,6 +123,23 @@ while True:
             userName = ''
             displayName = ''
             userVerified = ''
+            villesTweet = []
+            tweetTexte = tweet.text
+            clean_tweet = pre_process_tweet(tweet=tweetTexte)
+            words = clean_tweet.split()
+            for word in words:
+                for ville in villes['features']:
+                    if ville['properties']['name'].lower() == word.lower():
+                        villePoint = {}
+                        villePoint['text'] = ville['properties']['name']
+                        villePoint['location'] = ville['geometry']
+                        villesTweet.append(villePoint)
+
+                        # "text": "Geopoint as an object using GeoJSON format",
+                        # "location": {
+                        #     "type": "Point",
+                        #     "coordinates": [-71.34, 41.12]
+
             for i, user in enumerate(tweets.includes.get('users')):
                 if user.id == tweet.author_id:
                     userCreateDate = user.created_at
@@ -124,6 +151,7 @@ while True:
             tw['lang'] = tweet.lang
             tw['date'] = tweet.created_at.strftime('%Y-%m-%d %H:%M:%S%z (%Z)')
             tw['text'] = tweet.text
+            tw['villesTweet'] = villesTweet
             tw['contextAnnotation'] = tweet.context_annotations
             tw['source'] = tweet.source
             tw['userCreateDate'] = userCreateDate.strftime('%Y-%m-%d %H:%M:%S%z (%Z)')
@@ -131,6 +159,7 @@ while True:
             tw['displayName'] = displayName
             tw['userLocation'] = userLocation
             tw['userVerified'] = userVerified
+
 
             #print(tw)
 
