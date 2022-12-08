@@ -4,6 +4,7 @@ from kafka3 import TopicPartition
 from cleanTweet import pre_process_tweet
 import tweepy
 import datetime
+from dateutil import tz
 import time
 import json
 import os
@@ -14,7 +15,7 @@ listener = 'emsst.ddns.net:9092'
 topic = "ukraine20"
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
-
+to_zone = tz.tzlocal()
 #Définitions des paramètres tweepy et kafka
 client = tweepy.Client(bearer_token='AAAAAAAAAAAAAAAAAAAAAH03jQEAAAAAytapQlqUanV7mDeQ%2B386PKdQygM%3DdKev8v4TwXIuMfKaQ0AfAvxzxRlU9pziARLgR0CtVjoU2Z7Eu0')
 producer = KafkaProducer(bootstrap_servers=[listener])
@@ -117,6 +118,7 @@ while True:
 
 
     if tweets is not None:
+        dateFirstTweet = ''
         for i,tweet in enumerate(tweets.data):
             userCreateDate = ''
             userLocation = ''
@@ -149,12 +151,12 @@ while True:
                     userVerified = user.verified
             tw ={}
             tw['lang'] = tweet.lang
-            tw['date'] = tweet.created_at.strftime('%Y-%m-%d %H:%M:%S%z (%Z)')
+            tw['date'] = tweet.created_at.strftime("%Y-%m-%d"'T'"%H:%M:%S")
             tw['text'] = tweet.text
             tw['villesTweet'] = villesTweet
             tw['contextAnnotation'] = tweet.context_annotations
             tw['source'] = tweet.source
-            tw['userCreateDate'] = userCreateDate.strftime('%Y-%m-%d %H:%M:%S%z (%Z)')
+            tw['userCreateDate'] = userCreateDate.strftime("%Y-%m-%d"'T'"%H:%M:%S")
             tw['userName'] = userName
             tw['displayName'] = displayName
             tw['userLocation'] = userLocation
@@ -170,10 +172,19 @@ while True:
             actualTweet +=1
 
             print(tweet.created_at, f'Le {actualTweet}ème tweet a été envoyé à Kafka!', 'langue', tweet.lang )
+            if dateFirstTweet == '' :
+                dateFirstTweet = tweet.created_at.astimezone(to_zone).strftime("%H:%M:%S")
 
-    timedate = datetime.datetime.now()
+    timedate = datetime.datetime.now().strftime("%H:%M:%S")
     last_offset_per_partition = consumer.end_offsets(partitions)
     totalTweet = last_offset_per_partition[TopicPartition(topic=topic, partition=0)]
-    print(timedate.strftime("%H:%M:%S"), ' --> ' , actualTweet ,
-          ' Total sur le TOPIC :', totalTweet , )
-    time.sleep(6)
+    d1 = datetime.datetime.strptime(timedate,"%H:%M:%S")
+    d2 = datetime.datetime.strptime(dateFirstTweet,"%H:%M:%S")
+    tempsDiffere = abs((d2 - d1).total_seconds())
+
+    print(timedate, ' --> ' , actualTweet ,
+          ' Total sur le TOPIC :', totalTweet , tempsDiffere )
+
+    if tempsDiffere <= 30 :
+        time.sleep(4)
+    time.sleep(2)
