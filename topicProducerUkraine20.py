@@ -33,7 +33,7 @@ start_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=40)
 end_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=30)
 
 
-geoJson = open(os.path.join(__location__, 'ua.geojson'))
+geoJson = open(os.path.join(__location__, 'uarubl.geojson'))
 villes= json.load(geoJson)
 
 
