@@ -118,7 +118,7 @@ while True:
 
 
 
-    if tweets is not None:
+    if tweets.data is not None:
         dateFirstTweet = ''
         for i,tweet in enumerate(tweets.data):
             userCreateDate = ''
