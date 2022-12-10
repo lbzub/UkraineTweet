@@ -29,7 +29,7 @@ consumer = KafkaConsumer(
 partitions=[TopicPartition(topic, 0)]
 query = 'ukraine'
 start_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=40)
-end_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=34)
+end_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=32)
 
 
 geoJson = open(os.path.join(__location__, 'ua.geojson'))
@@ -188,5 +188,5 @@ while True:
           ' Total sur le TOPIC :', totalTweet , tempsDiffere )
 
     if tempsDiffere <= 30 :
-        time.sleep(4)
-    time.sleep(2)
+        time.sleep(8)
+    time.sleep(4)
