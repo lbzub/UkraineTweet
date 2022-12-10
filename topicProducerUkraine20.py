@@ -115,7 +115,7 @@ while True:
 
 
     start_time = end_time
-    end_time = start_time + datetime.timedelta(seconds=6)
+    end_time = start_time + datetime.timedelta(seconds=10)
 
 
 
