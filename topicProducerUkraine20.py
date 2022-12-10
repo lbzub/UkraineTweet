@@ -189,7 +189,7 @@ while True:
         maxTweetCatch = actualTweet
 
     print(timedate, ' --> ' , actualTweet ,
-          ' Total sur le TOPIC :', totalTweet ,'Retard :' tempsDiffere,'Max tweets / session :',maxTweetCatch )
+          ' Total sur le TOPIC :', totalTweet ,'Retard :', tempsDiffere,'Max tweets / session :',maxTweetCatch )
 
     if tempsDiffere <= 30 :
         time.sleep(6)
