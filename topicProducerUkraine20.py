@@ -16,6 +16,7 @@ topic = "ukraine20"
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
 to_zone = tz.tzlocal()
+maxTweetCatch=0
 #Définitions des paramètres tweepy et kafka
 client = tweepy.Client(bearer_token='AAAAAAAAAAAAAAAAAAAAAH03jQEAAAAAytapQlqUanV7mDeQ%2B386PKdQygM%3DdKev8v4TwXIuMfKaQ0AfAvxzxRlU9pziARLgR0CtVjoU2Z7Eu0',
                        wait_on_rate_limit=True)
@@ -184,8 +185,11 @@ while True:
     d2 = datetime.datetime.strptime(dateFirstTweet,"%H:%M:%S")
     tempsDiffere = abs((d2 - d1).total_seconds())
 
+    if maxTweetCatch < actualTweet :
+        maxTweetCatch = actualTweet
+
     print(timedate, ' --> ' , actualTweet ,
-          ' Total sur le TOPIC :', totalTweet , tempsDiffere )
+          ' Total sur le TOPIC :', totalTweet ,'Retard :' tempsDiffere,'Max tweets / session :',maxTweetCatch )
 
     if tempsDiffere <= 30 :
         time.sleep(6)
