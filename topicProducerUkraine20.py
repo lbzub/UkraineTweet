@@ -17,7 +17,8 @@ __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
 to_zone = tz.tzlocal()
 #Définitions des paramètres tweepy et kafka
-client = tweepy.Client(bearer_token='AAAAAAAAAAAAAAAAAAAAAH03jQEAAAAAytapQlqUanV7mDeQ%2B386PKdQygM%3DdKev8v4TwXIuMfKaQ0AfAvxzxRlU9pziARLgR0CtVjoU2Z7Eu0')
+client = tweepy.Client(bearer_token='AAAAAAAAAAAAAAAAAAAAAH03jQEAAAAAytapQlqUanV7mDeQ%2B386PKdQygM%3DdKev8v4TwXIuMfKaQ0AfAvxzxRlU9pziARLgR0CtVjoU2Z7Eu0',
+                       wait_on_rate_limit=True)
 # bearer_token de secours : AAAAAAAAAAAAAAAAAAAAAJwEkQEAAAAA0LJ9ZzVMVBlh8PbsjOqBNZFsBGY%3DIm5qzbE8nHVfAPvcSOohWykwWw3SfG7Nx18Ur3XBD4ySZcKiQ7
 producer = KafkaProducer(bootstrap_servers=[listener])
 consumer = KafkaConsumer(
