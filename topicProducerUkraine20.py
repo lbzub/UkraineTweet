@@ -11,20 +11,20 @@ import os
 
 # Choix du serveur kafka local ou distant
 #listener = 'localhost:19092'
-listener = 'emsst.ddns.net:9092'
+listener = '*****.ddns.net:9092'
 
-#Variables
+#Variables globales
 topic = "ukraine20"
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
 to_zone = tz.tzlocal()
 maxTweetCatch = 0
 tweepyErrors = 0
+timeWindow = 10
 
 #Définitions des paramètres tweepy et kafka
-client = tweepy.Client(bearer_token='AAAAAAAAAAAAAAAAAAAAAH03jQEAAAAAytapQlqUanV7mDeQ%2B386PKdQygM%3DdKev8v4TwXIuMfKaQ0AfAvxzxRlU9pziARLgR0CtVjoU2Z7Eu0',
+client = tweepy.Client(bearer_token='*****************',
                        wait_on_rate_limit=True)
-# bearer_token de secours : AAAAAAAAAAAAAAAAAAAAAJwEkQEAAAAA0LJ9ZzVMVBlh8PbsjOqBNZFsBGY%3DIm5qzbE8nHVfAPvcSOohWykwWw3SfG7Nx18Ur3XBD4ySZcKiQ7
 producer = KafkaProducer(bootstrap_servers=[listener])
 consumer = KafkaConsumer(
     topic,
@@ -33,19 +33,20 @@ consumer = KafkaConsumer(
 )
 partitions=[TopicPartition(topic, 0)]
 query = 'ukraine'
-start_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=40)
+start_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=((30+timeWindow)))
 end_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=30)
 
-
+#Ouverture du Geojson contenant les villes à trouver dans les tweets
 geoJson = open(os.path.join(__location__, 'uarublpl.geojson'))
 villes= json.load(geoJson)
 
 
-#Récupération des tweets et envoie en json sur le topic Kafka
+#Requête API tweeter, Récupération des tweets, traitement et envoie en json sur le topic Kafka
 while True:
     try:
         actualTweetWorld = 0
         actualTweet = 0
+        #Requête API tweeter
         tweets = client.search_recent_tweets(query=query,
                                              tweet_fields=["attachments",
                                                             "author_id",
@@ -118,13 +119,11 @@ while True:
                                             start_time=start_time,
                                             end_time=end_time
                                             )
-
-
         start_time = end_time
-        end_time = start_time + datetime.timedelta(seconds=10)
+        end_time = start_time + datetime.timedelta(seconds=timeWindow)
 
 
-
+        #Récupération, traitement et envoie des tweets
         if tweets.data is not None:
             dateFirstTweet = ''
             for i,tweet in enumerate(tweets.data):
@@ -134,6 +133,9 @@ while True:
                 displayName = ''
                 userVerified = ''
                 villesTweet = []
+
+
+                #Récupération des geopoints de villes citées dans les tweets
                 tweetTexte = tweet.text
                 clean_tweet = pre_process_tweet(tweet=tweetTexte)
                 words = clean_tweet.split()
@@ -145,11 +147,7 @@ while True:
                             villePoint['location'] = ville['geometry']
                             villesTweet.append(villePoint)
 
-                            # "text": "Geopoint as an object using GeoJSON format",
-                            # "location": {
-                            #     "type": "Point",
-                            #     "coordinates": [-71.34, 41.12]
-
+                #Récupération des informations des utilisateurs ayant tweeté
                 for i, user in enumerate(tweets.includes.get('users')):
                     if user.id == tweet.author_id:
                         userCreateDate = user.created_at
@@ -157,6 +155,8 @@ while True:
                         userName = user.username
                         displayName = user.name
                         userVerified = user.verified
+
+                #Création du JSON à envoyer sur le Topic Kafka
                 tw ={}
                 tw['lang'] = tweet.lang
                 tw['date'] = tweet.created_at.strftime("%Y-%m-%d"'T'"%H:%M:%S")
@@ -169,20 +169,18 @@ while True:
                 tw['displayName'] = displayName
                 tw['userLocation'] = userLocation
                 tw['userVerified'] = userVerified
-
-
-                #print(tw)
-
                 tw = json.dumps(tw).encode('utf-8')
 
-
+                #Envoi sur le Topic Kafka
                 producer.send(topic, tw)
                 actualTweet +=1
 
+                #Log d'envoie d'un tweet
                 print(tweet.created_at, f'Le {actualTweet}ème tweet a été envoyé à Kafka!', 'langue', tweet.lang )
                 if dateFirstTweet == '' :
                     dateFirstTweet = tweet.created_at.astimezone(to_zone).strftime("%H:%M:%S")
 
+        #Log de fin d'envoie des tweets récents récupérés
         timedate = datetime.datetime.now().strftime("%H:%M:%S")
         last_offset_per_partition = consumer.end_offsets(partitions)
         totalTweet = last_offset_per_partition[TopicPartition(topic=topic, partition=0)]
@@ -196,10 +194,12 @@ while True:
         print(timedate, ' --> ' , actualTweet ,
               ' Total sur le TOPIC :', totalTweet ,'| Retard :', tempsDiffere,'| Max tweets:',maxTweetCatch,'| Tweepy Errors:', tweepyErrors )
 
+        #Gestion du tempo afin de rester autour de 30 secondes de retard sur le direct
         if tempsDiffere <= 30 :
-            time.sleep(6)
-        time.sleep(4)
+            time.sleep(timeWindow)
+        time.sleep(timeWindow/3)
 
+    #Gestion des erreur tweepy ( Par exemple lors de la surcharge des serveurs de tweeter)
     except tweepy.errors :
-        time.sleep(10+(5*tweepyErrors))
+        time.sleep(10)
         tweepyErrors += 1
